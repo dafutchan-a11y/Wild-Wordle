@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Wild Wordle 🦋</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: #fdf8fc; font-family: 'Nunito', sans-serif; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  @keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes slideDown {
+    0% { transform: translateY(-20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const WORD_BANK = {
+  Animal: [
+    "horse","eagle","shark","whale","mouse","moose","goose","crane","robin","finch",
+    "heron","stork","swift","raven","viper","otter","llama","bison","panda","zebra",
+    "tiger","puppy","bunny","snail","trout","squid","gecko","skunk","quail","camel",
+    "lemur","hyena","koala","macaw","hound","sheep","snake","drake","prawn","dingo",
+    "steed","beast","perch","grebe","egret","foxes","bears","lions","hippo","rhino",
+    "owlet","larva","polyp","leech","coral","clams","bream","oxbow","foals","colts",
+    "fawns","geese","moths","mites","fleas","grubs","wasps","toads","newts","gulls",
+    "whelk","elfin","crabs","shrew","stoat","civet","addax","doves","wrens","molly",
+    "guppy","tetra","betta","crows","midge","mules","calfs","hares","voles",
+    "minks","seals","ducks","swans","loons","coots"
+  ],
+  Nature: [
+    "bloom","creek","frost","grove","maple","ocean","ridge","storm","swamp","thorn",
+    "trunk","marsh","cliff","cloud","coral","daisy","earth","field","flood","flame",
+    "grass","blaze","beach","brook","cedar","delta","ember","fungi","glade","heath",
+    "ivory","knoll","larch","ledge","lilac","moats","oasis","petal","plain","reeds",
+    "roots","shore","slope","spray","steam","stone","thyme","tulip","vapor","weeds",
+    "waves","woods","river","pines","acorn","algae","aster","birch","briar","brush",
+    "butte","crest","dunes","flora","frond","gorge","gulch","inlet","mound","mulch",
+    "peony","plume","poppy","shoal","shrub","spore","stalk","stump","trout","twist",
+    "vines","basin","bluff","caves","crops","ditch","falls","hedge","hills","lakes",
+    "lawns","leafy","lofty","mossy","muddy","oaken","paths","peaks","ponds","pools",
+    "rocky","sandy","seedy","silty","steep","sunny","swirl","trees","wilds","misty"
+  ],
+  Weather: [
+    "rainy","snowy","windy","foggy","sunny","sleet","hails","humid","muggy","balmy",
+    "chill","draft","gales","gusts","squab","north","south","polar","solar","dusty",
+    "dryer","ozone","front","click","flash","frost","thaws","soggy","dryly","flood",
+    "gauge","storm","cloud","hazel"
+  ],
+  Action: [
+    "build","carry","catch","chase","climb","count","crash","cross","dance","draft",
+    "drain","dream","drift","drink","drive","drown","erase","feast","fetch","fight",
+    "float","flung","focus","forge","found","froze","laugh","glare","gleam","glide",
+    "grasp","greet","grind","guard","guide","heave","hover","hurry","kneel","knock",
+    "leapt","learn","march","paint","parse","pause","perch","plant","plead",
+    "pluck","point","leaps","power","press","prove","prowl","purge","quake",
+    "raise","reach","reign","rinse","roast","scale","scold","scout","seize","serve",
+    "shave","shift","shine","shout","sighs","skate","skimp","sleep","slide",
+    "smile","snare","solve","speak","speed","spend","spill","spray","stalk","stamp",
+    "stare","steer","sting","stomp","store","strum","study","stuff","surge","swear",
+    "sweep","swing","teach","thank","throw","touch","trace","track","trade","train",
+    "treat","trust","twist","unite","valor","vault","visit","voice","watch","weave",
+    "wield","wound","write","yield","allow","apply","argue","avoid","awake","begin",
+    "blame","blast","bleed","blend","bless","block","board","boast","bound","brace",
+    "brave","break","breed","bring","brush","burst","carve","cause","chant","charm",
+    "cheap","cheer","chose","claim","clamp","clang","clash","clasp","clean","clear",
+    "cling","close","coach","crack","craft","crawl","creep","crush","curve","delay",
+    "elect","enjoy","enter","equip","exact","exert","exist","expel","faint","flare",
+    "flush","force","frame","freed","grant","graze","grown","haunt",
+    "honor","judge","knelt","labor","latch","layer","leave","level","limit","lodge",
+    "lower","match","merge","mount","mourn","nudge","occur","offer","orbit","order",
+    "paste","patch","plumb","posed","prank","pulse","quote",
+    "rally","react","rebel","refer","relax","repay","reply","rival","roost","route",
+    "groan","salve","savor","scoop","score","scrub","sever","shade","shape","share",
+    "shock","shove","shown","siege","since","spare","spoke","stack","stage","stake",
+    "stand","start","state","stays","stick","stiff","stock","stood","stoop","strip",
+    "strut","swamp","swirl","tease","tempt","thumb","tidal","tower","tried","troop",
+    "truce","tutor","opens","untie","upset","usher","utter","value","verse",
+    "wager","waste","weary","wedge","whirl","wring","wrote"
+  ],
+  Feeling: [
+    "angry","brave","calms","eager","faith","gleam","happy","jolly","loyal","merry",
+    "moody","nervy","peace","proud","quiet","rowdy","silly","sorry","timid","trust",
+    "upset","vivid","weary","worry","zesty","bliss","blush","charm","cheer","comfy",
+    "doubt","dread","fancy","fiery","grace","greed","guilt","hasty","honor","humor",
+    "jolts","mercy","noble","panic","pluck","shame","shock","spite","stern","sweet",
+    "tense","elate","valor","vigor","wrath","yearn","alarm","amaze","annoy",
+    "awful","bland","bored","bossy","brash","crazy","dizzy","eerie","envoy","foggy",
+    "funny","giddy","gloat","gloom","grief","gruff","gushy","harsh","hefty","hyper",
+    "irate","jumpy","keyed","livid","lucky","meany","mirth","mourn","needy","perky",
+    "petty","pleas","rigid","rough","sassy","saucy","scare","shaky","slyly","snark",
+    "sulky","surly","tired","tough","vexed","wacky","whiny","witty","zippy"
+  ],
+  Food: [
+    "apple","bacon","berry","bread","broth","candy","chips","cocoa","cream",
+    "curry","dough","feast","flour","fruit","grain","grape","gravy","guava","herbs",
+    "honey","icing","jelly","juice","lemon","lunch","mango","meals","melon","mocha",
+    "olive","onion","pasta","peach","pecan","pizza","plums","roast","rolls","salad",
+    "salsa","sauce","scone","seeds","slice","snack","spice","steak","sugar","sweet",
+    "syrup","taste","toast","treat","tripe","wafer","wheat","yeast","basil","beans",
+    "blend","brisk","broil","cakes","clove","crisp","dates","drink","fudge",
+    "grill","jerky","knead","maple","milks","mints","mouth","nacho","naans","nutty",
+    "oaten","panko","patty","pilaf","prawn","punch","puree","ramen","ranch","ripen",
+    "salty","savor","serve","sifts","soupy",
+    "steam","stock","stout","tangy","thyme","tonic","torte","vegan","wedge","zesty"
+  ],
+  Object: [
+    "bench","blade","block","books","boxes","brick","broom","brush","cable","canoe",
+    "chain","chair","chalk","chest","clasp","cloak","clock","cloth","coach","coins",
+    "couch","crate","crown","diary","drill","drums","fence","flask","frame","glass",
+    "globe","glove","grain","hinge","ivory","jewel","knife","latch","lever","light",
+    "medal","metal","motor","paint","panel","paper","pearl","phone","piano","plate",
+    "prize","purse","quill","radar","radio","razor","reins","rings","ropes","ruler",
+    "scale","scarf","shelf","shell","shirt","shoes","signs","silks","slate","socks",
+    "sonar","spade","spear","spoke","spoon","staff","stamp","steel","stick","stool",
+    "stove","strap","sword","table","tiles","tools","torch","towel","trays","tubes",
+    "valve","wagon","watch","wheel","badge","bands","basin","beads","bells","belts",
+    "binds","blank","boats","bolts","bonds","bowls","braid","cards","carts","cases",
+    "chips","clips","coils","cords","cover","cuffs","decks","dials","discs","doors",
+    "flags","flute","forks","gears","gifts","grids","guard","guide","harps",
+    "heels","hooks","horns","knobs","knots","label","lanes","lamps",
+    "liner","locks","masks","mills","nails","notes","ovens","packs","pages","panes",
+    "peels","picks","pipes","plank","plugs","poles","posts","racks","rails",
+    "robes","safes","sails","seats","sheds","ships","shots","slugs","spans","stems",
+    "steps","studs","suits","tanks","tapes","tents","tires","tongs","traps",
+    "trunk","vases","vests","vials","wands","wares","wires","wraps","yanks"
+  ],
+  Place: [
+    "arena","attic","cabin","caves","coast","court","depot","diner","doors","farms",
+    "field","floor","foyer","haven","hills","homes","hotel","house","inlet","isles",
+    "keeps","lakes","lanes","lobby","lodge","manor","marsh","mines","motel","oasis",
+    "ocean","parks","plaza","porch","ports","ranch","realm","ridge","river","rooms",
+    "route","ruins","scene","shops","shore","sites","slope","space","stage","store",
+    "suite","swamp","tower","towns","trail","urban","vault","villa","vista","wards",
+    "wharf","woods","yards","zones","abbey","alley","banks","barns","basin","bluff",
+    "booth","camps","canal","capes","cells","cliff","docks","dorms","dunes","flats",
+    "forts","gates","gorge","halls","heath","jetty","knoll","levee",
+    "links","locks","meads","niche","paths","peaks","plain",
+    "pools","quays","reefs","shack","stays","steps","strip","units","walls","wells"
+  ],
+  Body: [
+    "ankle","blood","bones","brain","cheek","chest","elbow","flesh","gland","heart",
+    "joint","knees","liver","lungs","mouth","nerve","organ","palms","pulse","femur",
+    "scalp","sight","sinew","skull","spine","teeth","thigh","thumb","torso","veins",
+    "voice","waist","wrist","backs","belly","cells","colon","crown","heels","limbs",
+    "nails","necks","pupil","shins","sides","soles","tense","tired","trunk"
+  ],
+  Describe: [
+    "agile","ample","basic","blank","bleak","blunt","gutsy","brash","brief","broad",
+    "bulky","cheap","chief","civil","clean","clear","close","crude","cruel","curly",
+    "daily","dense","dizzy","dusty","eager","early","empty","equal","exact","extra",
+    "faded","false","fancy","fatal","final","first","fixed","foggy","fresh","fuzzy",
+    "giant","grand","great","grimy","gross","grown","hairy","handy","hardy","harsh",
+    "hasty","heavy","raspy","human","humid","ideal","inner","irate","ivory",
+    "jaunt","jewel","jolly","jumbo","known","large","later","leafy","legal","level",
+    "light","linen","livid","local","loose","lousy","lower","lucky","lunar","magic",
+    "major","mealy","meaty","messy","micro","minor","misty","mixed","model","moist",
+    "moral","mossy","muddy","murky","mushy","musty","nasty","naval","noble","noisy",
+    "north","noted","novel","oaken","outer","ovoid","owing","perky","petty","picky",
+    "plain","plush","polar","prime","prior","prone","proud","pushy","quick","quiet",
+    "rapid","ready","rigid","rocky","rough","round","royal","rural","rusty","salty",
+    "sandy","shaky","shiny","short","silly","sixth","sleek","small","smart","smoky",
+    "snowy","solar","solid","south","spare","stark","steep","stern","stiff","stony",
+    "stout","swift","tangy","thick","tight","timid","total","tough","upper","urban",
+    "usual","utter","vague","valid","vivid","vocal","warms","weary","weird","whole",
+    "wider","windy","witty","wordy","worst","young","zesty"
+  ],
+  Science: [
+    "acids","algae","alloy","atoms","bonds","cells","chart","cycle","diode","draft",
+    "drone","elect","fiber","fluid","focal","force","relic","genes","genus","graph",
+    "hertz","laser","layer","lunar","magma","molar","nerve","noise","orbit","oxide",
+    "phase","pilot","pixel","plant","polar","power","prism","probe","pulse","radar",
+    "ratio","relay","resin","rigid","rover","scale","solid","sonic","solar","sonar",
+    "spark","spore","steam","stone","swirl","tidal","timer","tonic","toxic","trace",
+    "tumor","unity","valve","vapor","virus","volts","watts","waves","zones","input",
+    "lever","metal","meter","model","optic","outer","paste","plasm","radii","renal",
+    "rivet","salts","serum","shaft","sigma","siren","slope","speed","spine","split",
+    "stain","swabs","tempo","tests","tones","tools","trait","ultra",
+    "units","wedge","yield"
+  ],
+  Building: [
+    "beams","bolts","brick","build","cabin","doors","drain","eaves","fence","floor",
+    "forge","frame","gates","glass","grout","joist","level","liner","lodge","mason",
+    "metal","nails","paint","panel","pipes","plank","posts","rails","raise","rivet",
+    "roofs","screw","sheds","shelf","sills","slate","stack","stage","stair","steal",
+    "steel","stone","studs","suite","tiles","tower","truss","vault","walls","welds",
+    "wires","woods","yards"
+  ],
+  Clothing: [
+    "apron","bands","belts","beret","boots","braid","capes","cloak","cloth","coats",
+    "shrug","crown","drape","dress","fiber","gauge","glove","gowns","heels","jeans",
+    "laced","linen","mitts","plaid","pouch","robes","satin","scarf","shawl","shift",
+    "shirt","shoes","silks","skirt","slack","socks","stole","strap","suede","suits",
+    "tiara","tunic","tweed","visor","weave","woven"
+  ],
+  Music: [
+    "banjo","beats","bells","brass","cello","chant","chime","chord","clefs","drums",
+    "duets","eerie","flute","forte","genre","harps","horns","ivory","largo",
+    "lyric","major","march","meter","minor","music","notes","opera","organ","piano",
+    "pipes","pitch","pluck","pulse","reeds","rings","rondo","songs","sound","strum",
+    "suite","tempo","tenor","tones","trios","tunes","twang","viola","vocal","waltz",
+    "winds"
+  ],
+  Sport: [
+    "arena","badge","bases","bench","block","boats","bound","canoe","catch","champ",
+    "chase","climb","coach","court","cycle","darts","diver","dodge","draft","drawn",
+    "drill","drive","eight","event","field","final","float","goals","guard","heats",
+    "hiker","horse","judge","kayak","kicks","kneel","lanes","leapt","lunge","match",
+    "medal","mound","paced","pedal","pitch","point","pools","power","prize","punch",
+    "races","rally","reach","rings","rival","round","rugby","rules","score","skate",
+    "slide","speed","squad","staff","stake","stand","start","stick","stunt","surge",
+    "swims","swing","teams","throw","timer","title","track","train","traps","trial",
+    "vault","yacht"
+  ],
+  Time: [
+    "aging","April","begin","daily","dated","dawns","decay","delay","early","epoch",
+    "final","first","flash","hasty","hurry","lapse","later","lunar","march","month",
+    "never","night","often","order","pause","phase","prime","prior","quick","rapid",
+    "tempo","times","today","total","twice","until","watch","while","years","young",
+    "after","await","brief","cycle","ended","event","fresh","grown","hence","known",
+    "newer","newly","older","onset","since","spare","start","still",
+    "usual","weeks"
+  ],
+  Thought: [
+    "admit","agree","brain","cause","chose","claim","clues","coach","count","creed",
+    "depth","doubt","draft","dream","equal","error","essay","facts","false","focus",
+    "found","grasp","guess","guide","ideas","image","judge","known","learn","level",
+    "logic","meant","minds","moral","noted","novel","occur","optic","order","parse",
+    "place","plain","plans","pleas","point","power","prove","query","quest","quote",
+    "reach","reads","rebel","refer","reign","reply","rival","rules","saint","savvy",
+    "scale","scene","scope","sense","serve","shown","sight","skill","solve","study",
+    "style","terms","theme","think","those","tried","truly","truth","tutor","twist",
+    "unity","usage","valid","value","verse","views","voice","wager","weird","whole",
+    "smart","wrote","yield"
+  ],
+  Misc: [
+    "about","above","adult","after","again","along","among","aside","awake","below",
+    "bonus","brief","bunch","cable","cargo","cheap","chief","civil","claim","class",
+    "cloth","color","could","cover","crazy","dance","depth","doing","dozen","eight",
+    "elite","enjoy","enter","every","event","exact","exist","extra","fatal","favor",
+    "fifth","fifty","floor","focus","forth","frame","fully","given","going","grand",
+    "green","group","guard","guest","habit","hence","hired","human","ideal","index",
+    "inner","issue","ivory","joint","knack","labor","layer","legal","level","limit",
+    "lived","local","lodge","logic","loose","lover","lower","magic","major","manor",
+    "match","mayor","meant","mercy","might","model","money","month","moral","motor",
+    "mount","movie","nerve","never","night","noble","noise","north","noted","novel",
+    "often","opera","order","other","outer","owner","panel","party","patch","peace",
+    "penny","phase","photo","pilot","pitch","place","plain","plant","plate","plaza",
+    "plead","plumb","point","polar","posed","power","press","price","pride","prime",
+    "prize","proof","proud","prove","psalm","queen","quest","quick","quiet","quite",
+    "quota","radio","raise","rally","range","rapid","ratio","reach","ready","realm",
+    "rebel","refer","reign","relax","repay","reply","rider","right","rigid","rival",
+    "river","roast","route","royal","rural","saint","salad","savor","scale","scene",
+    "scope","score","scout","sense","serve","seven","shade","shall","shape","share",
+    "sharp","shock","shown","siege","sight","since","sixth","skill","sleep","smart",
+    "smile","solve","sorry","south","space","spare","spawn","speak","spend","split",
+    "spoke","spoon","squad","stack","staff","stage","stake","stamp","stand","start",
+    "state","stays","steam","steel","steer","stern","stick","stiff","stock","stone",
+    "stood","stool","store","strip","strut","stuck","stuff","style","suite","surge",
+    "swear","sweet","swept","sword","swore","taste","teach","terms","thank","their",
+    "theme","there","thick","thing","third","those","threw","throw","thumb","tight",
+    "timer","title","today","total","touch","tough","tower","trace","track","trade",
+    "trail","train","trait","treat","trend","trial","tried","troop","truce","truly",
+    "trunk","trust","truth","tutor","twice","twist","ultra","under","unpin","union",
+    "unite","unity","until","upper","upset","urban","usage","usual","utter","valid",
+    "value","vapor","verse","video","vigor","viral","visit","vital","vivid","vocal",
+    "voice","voter","wagon","watch","weary","weird","wheel","where","which","while",
+    "white","whole","whose","wider","witch","women","works","world","worse","worst",
+    "worth","would","wound","wrist","wrote","yield","young","yours","youth"
+  ],
+  Extra: [
+    "abort","abuse","adopt","alarm","album","alien","align","alpha","angel","ankle",
+    "annex","anvil","arena","armor","arrow","ashes","atlas","atone","award","bacon",
+    "badge","baker","baron","batch","beach","begin","being","belly","bench","bible",
+    "birth","bites","blame","blank","bleed","bliss","blown","blunt","blurt","bobby",
+    "booth","bored","botch","bower","boxer","brake","brash","breed","brews","bride",
+    "brine","brink","broil","brood","brute","budge","buggy","bulge","bumpy","buyer",
+    "bytes","cadet","cameo","candy","cargo","cedar","chafe","champ","chasm","chess",
+    "cider","civic","clasp","comet","comic","comma","coral","couch","could","cough",
+    "coypu","crane","crews","crisp","crock","crops","crude","crust","cubic","debug",
+    "decal","decoy","deity","demon","depot","deter","digit","ditch","dizzy","dodge",
+    "donor","downy","drama","drape","dread","drone","drool","drove","drunk","dwarf",
+    "easel","edict","elder","ember","emoji","ensue","envoy","erupt","evade","exact",
+    "exile","expat","facet","fairy","farce","fatty","feast","felon","femur","ferry",
+    "fetch","fiery","filth","flame","flare","fleet","fling","flint","floss","flown",
+    "foggy","forge","forty","forum","fresh","friar","frisk","fugal","fungi","gamma",
+    "gauze","gavel","ghoul","giddy","girth","glare","glaze","glide","gloat","gnome",
+    "gorge","gouge","grain","grief","grime","gripe","groom","grope","grove","guise",
+    "gully","gumbo","haiku","haven","heist","hippo","hoist","homer","hyper","igloo",
+    "impel","ivory","jelly","kebab","khaki","kinky","kiosk","knack","knelt","laden",
+    "lance","lapse","latex","ledge","libel","lilac","limbo","liner","llama","lofty",
+    "lucid","mango","marsh","maxim","mercy","melee","minus","mirth","misty","mitre",
+    "mogul","moist","moldy","mulch","mural","naive","niche","ninth","omega","opted",
+    "orbit","oxide","patio","penny","pesky","petty","plaid","plumb","plume","poach",
+    "polar","polyp","prone","prude","prune","pygmy","qualm","quart","quirk","rabid",
+    "radii","radon","realm","recap","refit","remit","rider","risky","roomy","rouge",
+    "rowdy","sable","salon","sauna","scald","scant","scone","sedan","seize","sever",
+    "sheen","siege","siren","sixth","soapy","solar","sonic","spasm","speck","spicy",
+    "spire","spoof","spout","squat","stain","stale","stern","stint","stoic","stray",
+    "strew","suave","suite","swine","tabby","tally","talon","taunt","tease","tempo",
+    "thief","token","toxin","tuber","tulip","ultra","undue","unsay","untie","usher",
+    "valet","venue","vinyl","viola","vivid","vogue","vouch","vowel","wacky","wafer",
+    "wager","waltz","whack","wheat","whelp","whiff","whisk","width","winch","witch",
+    "yacht","yearn","yeast","zebra","zilch","zonal"
+  ]
+};
+
+// Flatten + deduplicate
+const seen = new Set();
+const ALL_WORDS = [];
+for (const [category, words] of Object.entries(WORD_BANK)) {
+  for (const w of words) {
+    const clean = w.trim().toUpperCase();
+    if (clean.length === 5 && /^[A-Z]{5}$/.test(clean) && !seen.has(clean)) {
+      seen.add(clean);
+      ALL_WORDS.push({ word: clean, category });
+    }
+  }
+}
+
+const VALID_WORDS = new Set(ALL_WORDS.map(w => w.word));
+const MAX_GUESSES = 6;
+const WORD_LENGTH = 5;
+
+const COLORS = {
+  correct: "#9b6b9e",
+  present: "#e4a0c1",
+  absent: "#8e8e9a",
+  empty: "transparent",
+  tileBorder: "#d4c4d9",
+  tileBg: "#fdf6fa",
+  keyBg: "#e8dae8",
+  bg: "#fdf8fc",
+  text: "#3d3345",
+  textLight: "#8a7f92",
+  accent: "#9b6b9e",
+  headerBg: "#7d5a8a",
+};
+
+function getRandomWord() {
+  return ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
+}
+
+function evaluateGuess(guess, answer) {
+  const result = Array(WORD_LENGTH).fill("absent");
+  const answerArr = answer.split("");
+  const guessArr = guess.split("");
+  const used = Array(WORD_LENGTH).fill(false);
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (guessArr[i] === answerArr[i]) { result[i] = "correct"; used[i] = true; }
+  }
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    if (result[i] === "correct") continue;
+    for (let j = 0; j < WORD_LENGTH; j++) {
+      if (!used[j] && guessArr[i] === answerArr[j]) { result[i] = "present"; used[j] = true; break; }
+    }
+  }
+  return result;
+}
+
+function Tile({ letter, status, delay, isRevealing, isActive }) {
+  const bgColor = status === "correct" ? COLORS.correct : status === "present" ? COLORS.present : status === "absent" ? COLORS.absent : COLORS.tileBg;
+  const textColor = status && status !== "empty" ? "#fff" : COLORS.text;
+  const border = letter && !status ? `2px solid ${COLORS.text}` : status ? "none" : `2px solid ${COLORS.tileBorder}`;
+  return (
+    <div style={{
+      width: "clamp(48px, 13vw, 62px)", height: "clamp(48px, 13vw, 62px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: "clamp(22px, 5.5vw, 30px)", fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+      backgroundColor: bgColor, color: textColor, border, borderRadius: 8,
+      transition: "all 0.3s ease", transitionDelay: isRevealing ? `${delay * 0.25}s` : "0s",
+      transform: isActive && letter ? "scale(1.08)" : "scale(1)",
+      boxShadow: status ? "0 2px 4px rgba(0,0,0,0.15)" : "none", userSelect: "none",
+    }}>{letter || ""}</div>
+  );
+}
+
+function Key({ label, onClick, status, wide }) {
+  const bgColor = status === "correct" ? COLORS.correct : status === "present" ? COLORS.present : status === "absent" ? COLORS.absent : COLORS.keyBg;
+  const textColor = status ? "#fff" : COLORS.text;
+  return (
+    <button onClick={() => onClick(label)} onMouseDown={e => e.preventDefault()} style={{
+      padding: "0", minWidth: wide ? "clamp(50px, 12vw, 65px)" : "clamp(28px, 7.5vw, 40px)",
+      height: "clamp(42px, 11vw, 54px)", display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: wide ? "clamp(11px, 2.8vw, 14px)" : "clamp(13px, 3.2vw, 16px)",
+      fontWeight: 600, fontFamily: "'Fredoka', sans-serif", backgroundColor: bgColor, color: textColor,
+      border: "none", borderRadius: 6, cursor: "pointer", transition: "all 0.15s ease",
+      boxShadow: "0 1px 3px rgba(0,0,0,0.12)", userSelect: "none", WebkitTapHighlightColor: "transparent",
+    }}>{label === "BACK" ? "⌫" : label}</button>
+  );
+}
+
+function HintPanel({ hintsUsed, onUseHint, maxHints, hintData, gameOver }) {
+  if (gameOver) return null;
+  const hintLabels = ["\u{1F52E} Category", "\u{1F524} First Letter", "\u2728 Reveal Letter"];
+  return (
+    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 8 }}>
+      {[0, 1, 2].map(i => (
+        <button key={i} disabled={i !== hintsUsed || hintsUsed >= maxHints} onClick={() => onUseHint(i)} style={{
+          padding: "6px 14px", fontSize: 13, fontFamily: "'Nunito', sans-serif", fontWeight: 600, borderRadius: 20,
+          border: i < hintsUsed ? "2px solid " + COLORS.accent : "2px solid " + COLORS.tileBorder,
+          backgroundColor: i < hintsUsed ? COLORS.accent + "18" : i === hintsUsed ? "#fff" : "#f0ece4",
+          color: i < hintsUsed ? COLORS.accent : i === hintsUsed ? COLORS.text : COLORS.textLight,
+          cursor: i === hintsUsed && hintsUsed < maxHints ? "pointer" : "default",
+          opacity: i > hintsUsed ? 0.5 : 1, transition: "all 0.2s ease",
+        }}>{i < hintsUsed ? hintData[i] : hintLabels[i]}</button>
+      ))}
+    </div>
+  );
+}
+
+function StatsModal({ stats, onClose, onNewGame }) {
+  const maxDist = Math.max(...Object.values(stats.distribution), 1);
+  return (
+    <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.4)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, fontFamily: "'Nunito', sans-serif" }} onClick={onClose}>
+      <div style={{ backgroundColor: "#fff", borderRadius: 16, padding: "28px 32px", maxWidth: 360, width: "90%",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }} onClick={e => e.stopPropagation()}>
+        <h3 style={{ textAlign: "center", fontFamily: "'Fredoka', sans-serif", color: COLORS.accent, margin: "0 0 16px" }}>
+          Your Stats \u{1F52E}
+        </h3>
+        <div style={{ display: "flex", justifyContent: "space-around", marginBottom: 20 }}>
+          {[[stats.played, "Played"], [stats.played ? Math.round((stats.won / stats.played) * 100) : 0, "Win %"],
+            [stats.streak, "Streak"], [stats.maxStreak, "Best"]].map(([val, label], i) => (
+            <div key={i} style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: COLORS.text, fontFamily: "'Fredoka', sans-serif" }}>{val}</div>
+              <div style={{ fontSize: 12, color: COLORS.textLight }}>{label}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <h4 style={{ fontSize: 13, textAlign: "center", color: COLORS.textLight, margin: "0 0 8px" }}>GUESS DISTRIBUTION</h4>
+          {[1, 2, 3, 4, 5, 6].map(n => (
+            <div key={n} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, width: 12, color: COLORS.text }}>{n}</span>
+              <div style={{ height: 22, borderRadius: 4,
+                backgroundColor: stats.distribution[n] > 0 ? COLORS.accent : "#e0dbd2", minWidth: 24,
+                width: `${Math.max((stats.distribution[n] / maxDist) * 100, 8)}%`,
+                display: "flex", alignItems: "center", justifyContent: "flex-end",
+                paddingRight: 6, color: "#fff", fontSize: 12, fontWeight: 700, transition: "width 0.4s ease",
+              }}>{stats.distribution[n] > 0 ? stats.distribution[n] : ""}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onNewGame} style={{ width: "100%", padding: "12px 0", fontSize: 16, fontWeight: 700,
+          fontFamily: "'Fredoka', sans-serif", backgroundColor: COLORS.accent, color: "#fff", border: "none",
+          borderRadius: 10, cursor: "pointer" }}>New Game \u{1F49C}</button>
+      </div>
+    </div>
+  );
+}
+
+function WildWordle() {
+  const [target, setTarget] = useState(() => getRandomWord());
+  const [guesses, setGuesses] = useState([]);
+  const [currentGuess, setCurrentGuess] = useState("");
+  const [gameStatus, setGameStatus] = useState("playing");
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [hintData, setHintData] = useState([]);
+  const [revealedPositions, setRevealedPositions] = useState(new Set());
+  const [showStats, setShowStats] = useState(false);
+  const [shake, setShake] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isRevealing, setIsRevealing] = useState(false);
+
+  const defaultStats = { played: 0, won: 0, streak: 0, maxStreak: 0, distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 } };
+  const [stats, setStats] = useState(() => {
+    try {
+      const saved = localStorage.getItem("wild-wordle-stats");
+      return saved ? JSON.parse(saved) : defaultStats;
+    } catch { return defaultStats; }
+  });
+
+  const saveStats = useCallback((newStats) => {
+    setStats(newStats);
+    try { localStorage.setItem("wild-wordle-stats", JSON.stringify(newStats)); } catch {}
+  }, []);
+
+  const keyStatus = {};
+  for (const g of guesses) {
+    const evaluation = evaluateGuess(g, target.word);
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      const letter = g[i]; const s = evaluation[i];
+      if (s === "correct") keyStatus[letter] = "correct";
+      else if (s === "present" && keyStatus[letter] !== "correct") keyStatus[letter] = "present";
+      else if (s === "absent" && !keyStatus[letter]) keyStatus[letter] = "absent";
+    }
+  }
+
+  const flash = (msg, duration = 1500) => { setMessage(msg); setTimeout(() => setMessage(""), duration); };
+
+  const useHint = (index) => {
+    if (gameStatus !== "playing") return;
+    const newHints = [...hintData];
+    if (index === 0) {
+      newHints.push(`\u{1F52E} ${target.category}`);
+    } else if (index === 1) {
+      newHints.push(`\u{1F524} Starts with "${target.word[0]}"`);
+    } else if (index === 2) {
+      const knownPositions = new Set([...revealedPositions]);
+      for (const g of guesses) {
+        const ev = evaluateGuess(g, target.word);
+        ev.forEach((s, i) => { if (s === "correct") knownPositions.add(i); });
+      }
+      knownPositions.add(0);
+      const unrevealed = [];
+      for (let i = 0; i < WORD_LENGTH; i++) { if (!knownPositions.has(i)) unrevealed.push(i); }
+      if (unrevealed.length > 0) {
+        const pos = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+        const newRevealed = new Set(revealedPositions); newRevealed.add(pos);
+        setRevealedPositions(newRevealed);
+        newHints.push(`\u2728 Letter ${pos + 1} is "${target.word[pos]}"`);
+      } else { newHints.push("\u2728 No more letters to reveal!"); }
+    }
+    setHintData(newHints); setHintsUsed(index + 1);
+  };
+
+  const handleKey = useCallback((key) => {
+    if (gameStatus !== "playing" || isRevealing) return;
+    if (key === "ENTER") {
+      if (currentGuess.length !== WORD_LENGTH) {
+        setShake(true); flash("Not enough letters"); setTimeout(() => setShake(false), 400); return;
+      }
+      const upper = currentGuess.toUpperCase();
+      setIsRevealing(true);
+      const newGuesses = [...guesses, upper];
+      setGuesses(newGuesses); setCurrentGuess("");
+      setTimeout(() => {
+        setIsRevealing(false);
+        if (upper === target.word) {
+          setGameStatus("won");
+          const guessNum = newGuesses.length;
+          const newStats = { ...stats, played: stats.played + 1, won: stats.won + 1,
+            streak: stats.streak + 1, maxStreak: Math.max(stats.maxStreak, stats.streak + 1),
+            distribution: { ...stats.distribution, [guessNum]: (stats.distribution[guessNum] || 0) + 1 } };
+          saveStats(newStats);
+          const msgs = ["Incredible! \u{1F31F}", "Amazing! \u2728", "Great job! \u{1F98B}", "Nice work! \u{1F49C}", "Good one! \u{1F4AB}", "Phew! \u{1F52E}"];
+          flash(msgs[guessNum - 1] || "You got it!", 2500);
+        } else if (newGuesses.length >= MAX_GUESSES) {
+          setGameStatus("lost");
+          saveStats({ ...stats, played: stats.played + 1, streak: 0 });
+          flash(`The word was ${target.word}`, 3500);
+        }
+      }, WORD_LENGTH * 250 + 200);
+      return;
+    }
+    if (key === "BACK") { setCurrentGuess(prev => prev.slice(0, -1)); return; }
+    if (/^[A-Z]$/.test(key) && currentGuess.length < WORD_LENGTH) { setCurrentGuess(prev => prev + key); }
+  }, [gameStatus, currentGuess, guesses, target, stats, saveStats, isRevealing]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Enter") handleKey("ENTER");
+      else if (e.key === "Backspace") handleKey("BACK");
+      else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleKey]);
+
+  const newGame = () => {
+    setTarget(getRandomWord()); setGuesses([]); setCurrentGuess(""); setGameStatus("playing");
+    setHintsUsed(0); setHintData([]); setRevealedPositions(new Set()); setShowStats(false); setMessage("");
+  };
+
+  const rows = [];
+  for (let r = 0; r < MAX_GUESSES; r++) {
+    const row = [];
+    if (r < guesses.length) {
+      const evaluation = evaluateGuess(guesses[r], target.word);
+      for (let c = 0; c < WORD_LENGTH; c++) {
+        row.push(<Tile key={c} letter={guesses[r][c]} status={evaluation[c]} delay={c} isRevealing={r === guesses.length - 1 && isRevealing} />);
+      }
+    } else if (r === guesses.length) {
+      for (let c = 0; c < WORD_LENGTH; c++) { row.push(<Tile key={c} letter={currentGuess[c] || ""} status={null} delay={0} isActive={true} />); }
+    } else {
+      for (let c = 0; c < WORD_LENGTH; c++) { row.push(<Tile key={c} letter="" status={null} delay={0} />); }
+    }
+    rows.push(
+      <div key={r} style={{ display: "flex", gap: "clamp(4px, 1.2vw, 6px)", justifyContent: "center",
+        animation: shake && r === guesses.length ? "shake 0.4s ease" : "none" }}>{row}</div>
+    );
+  }
+
+  const KEYBOARD_ROWS = [["Q","W","E","R","T","Y","U","I","O","P"],["A","S","D","F","G","H","J","K","L"],["ENTER","Z","X","C","V","B","N","M","BACK"]];
+
+  return (
+    <div style={{ height: "100vh", backgroundColor: COLORS.bg, display: "flex", flexDirection: "column", alignItems: "center",
+      fontFamily: "'Nunito', sans-serif", position: "relative", overflow: "hidden" }}>
+      {/* Header */}
+      <div style={{ width: "100%", backgroundColor: COLORS.headerBg, padding: "12px 16px", display: "flex",
+        alignItems: "center", justifyContent: "center", position: "relative", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
+        <div style={{ textAlign: "center" }}>
+          <h1 style={{ margin: 0, fontSize: "clamp(22px, 5vw, 28px)", fontFamily: "'Fredoka', sans-serif",
+            fontWeight: 700, color: "#fff", letterSpacing: 1 }}>{"\u{1F98B}"} Wild Wordle {"\u{1F98B}"}</h1>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", fontWeight: 600, marginTop: 2 }}>
+            {ALL_WORDS.length} words to discover
+          </div>
+        </div>
+        <button onClick={() => setShowStats(true)} style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)",
+          background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "6px 12px", color: "#fff",
+          fontFamily: "'Fredoka', sans-serif", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>{"\u{1F4CA}"}</button>
+      </div>
+
+      {/* Toast */}
+      {message && (
+        <div style={{ position: "absolute", top: 75, left: "50%", transform: "translateX(-50%)", backgroundColor: COLORS.text,
+          color: "#fff", padding: "8px 20px", borderRadius: 8, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+          fontSize: 15, zIndex: 50, animation: "slideDown 0.2s ease", boxShadow: "0 4px 12px rgba(0,0,0,0.2)", whiteSpace: "nowrap" }}>
+          {message}
+        </div>
+      )}
+
+      {/* Game area */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "space-between",
+        padding: "12px 8px 8px", maxWidth: 500, width: "100%" }}>
+        <HintPanel hintsUsed={hintsUsed} onUseHint={useHint} maxHints={3} hintData={hintData} gameOver={gameStatus !== "playing"} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(4px, 1.2vw, 6px)", marginBottom: 12 }}>{rows}</div>
+
+        {gameStatus !== "playing" && (
+          <div style={{ display: "flex", gap: 10, marginBottom: 10, animation: "popIn 0.3s ease" }}>
+            <button onClick={newGame} style={{ padding: "10px 24px", fontSize: 15, fontWeight: 700, fontFamily: "'Fredoka', sans-serif",
+              backgroundColor: COLORS.accent, color: "#fff", border: "none", borderRadius: 10, cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(125,90,138,0.3)" }}>Play Again {"\u{1F49C}"}</button>
+            <button onClick={() => setShowStats(true)} style={{ padding: "10px 24px", fontSize: 15, fontWeight: 700,
+              fontFamily: "'Fredoka', sans-serif", backgroundColor: "#fff", color: COLORS.accent,
+              border: `2px solid ${COLORS.accent}`, borderRadius: 10, cursor: "pointer" }}>Stats {"\u{1F4CA}"}</button>
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(4px, 1vw, 6px)", width: "100%", maxWidth: 484 }}>
+          {KEYBOARD_ROWS.map((row, ri) => (
+            <div key={ri} style={{ display: "flex", justifyContent: "center", gap: "clamp(3px, 0.8vw, 5px)" }}>
+              {row.map(key => <Key key={key} label={key} onClick={handleKey} status={keyStatus[key]} wide={key === "ENTER" || key === "BACK"} />)}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {showStats && <StatsModal stats={stats} onClose={() => setShowStats(false)} onNewGame={newGame} />}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<WildWordle />);
+</script>
+</body>
+</html>
